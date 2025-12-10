@@ -1,77 +1,151 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { 
+  View, Text, TouchableOpacity, StyleSheet, Image, 
+  FlatList, ActivityIndicator, RefreshControl, Alert 
+} from 'react-native';
+import axios from 'axios';
 
-export default function ListKendaraan() {
-    return(
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
+// Ganti ip sesuai dengan ip yang digunakan
+const API_URL = 'http://192.168.0.125:8080/mojorental_api';
+
+export default function ListKendaraan({ navigation }) {
+    const [vehicles, setVehicles] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    // Fungsi Ambil Data dari API
+    const fetchVehicles = async () => {
+        try {
+            const response = await axios.get(`${API_URL}/vehicles.php`);
+            const availableVehicles = response.data; 
+            setVehicles(availableVehicles);
+        } catch (error) {
+            console.error(error);
+            Alert.alert("Error", "Gagal mengambil data kendaraan. Cek koneksi internet/server.");
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchVehicles();
+    }, []);
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchVehicles();
+    };
+
+    // Fungsi Navigasi ke Halaman Booking
+    const handleRent = (item) => {
+        if (item.status === 'available') {
+            navigation.navigate('Booking', { vehicle: item }); 
+        } else {
+            Alert.alert("Maaf", "Kendaraan ini sedang tidak tersedia.");
+        }
+    };
+
+    // Render Item (Tampilan Kartu per Kendaraan)
+    const renderItem = ({ item }) => (
+        <TouchableOpacity style={styles.kendaraanCard} onPress={() => handleRent(item)}>
+            {/* GAMBAR */}
+            <Image 
+                source={require('../assets/icon.png')} 
+                style={styles.cardImage}
+            />
             
-            {/* CARD 1 */}
-            <TouchableOpacity style={styles.kendaraanCard}>
-                {/* 1. BAGIAN KIRI: GAMBAR */}
-                <Image 
-                    source={require('../assets/icon.png')} // Nanti ganti gambar motor
-                    style={styles.cardImage}
-                />
+            {/* DETAIL KENDARAAN */}
+            <View style={styles.detailsContainer}>
+                <Text style={styles.title}>{item.name}</Text>
+                <Text style={styles.brand}>{item.brand} • {item.type}</Text>
                 
-                {/* 2. BAGIAN KANAN: DETAIL KENDARAAN */}
-                <View style={styles.detailsContainer}>
-                    <Text style={styles.title}>Honda Vario 160</Text>
-                    <Text style={styles.brand}>Honda • Matic</Text>
-                    <Text style={styles.price}>Rp 75.000 / hari</Text>
-                    
-                    {/* Contoh Status */}
-                    <View style={styles.statusBadge}>
-                        <Text style={styles.statusText}>Tersedia</Text>
-                    </View>
+                {/* Format Rupiah */}
+                <Text style={styles.price}>
+                    Rp {parseInt(item.price_per_day).toLocaleString('id-ID')} / hari
+                </Text>
+                
+                {/* Status Badge Dinamis */}
+                <View style={[
+                    styles.statusBadge, 
+                    { backgroundColor: item.status === 'available' ? '#e6f4ea' : '#fce8e6' }
+                ]}>
+                    <Text style={[
+                        styles.statusText,
+                        { color: item.status === 'available' ? 'green' : 'red' }
+                    ]}>
+                        {item.status === 'available' ? 'Tersedia' : 'Disewa / Maintenance'}
+                    </Text>
                 </View>
-            </TouchableOpacity>
+            </View>
+        </TouchableOpacity>
+    );
 
-            {/* CARD 2 (Contoh duplikasi biar kelihatan listnya) */}
-            <TouchableOpacity style={styles.kendaraanCard}>
-                <Image source={require('../assets/icon.png')} style={styles.cardImage}/>
-                <View style={styles.detailsContainer}>
-                    <Text style={styles.title}>Toyota Avanza</Text>
-                    <Text style={styles.brand}>Toyota • Manual</Text>
-                    <Text style={styles.price}>Rp 350.000 / hari</Text>
+    return (
+        <View style={styles.container}>
+            {loading ? (
+                <View style={styles.centerLoading}>
+                    <ActivityIndicator size="large" color="blue" />
                 </View>
-            </TouchableOpacity>
-
-        </ScrollView>
+            ) : (
+                <FlatList
+                    data={vehicles}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={renderItem}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+                    contentContainerStyle={styles.scrollContainer}
+                    ListEmptyComponent={
+                        <Text style={{textAlign: 'center', marginTop: 50, color: 'gray'}}>
+                            Tidak ada kendaraan tersedia saat ini.
+                        </Text>
+                    }
+                />
+            )}
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#f5f5f5', 
+    },
+    centerLoading: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
     scrollContainer: { 
         paddingVertical: 20,
-        alignItems: 'center', // Agar card berada di tengah layar secara horizontal
+        alignItems: 'center', 
     },
     kendaraanCard: {
-        width: '90%', // Lebar card 90% dari layar
-        height: 120, // Tinggi fix biar rapi (opsional, bisa auto)
-        backgroundColor: 'white', // Ganti gray jadi putih biar bersih
-        borderRadius: 15, // Sudut membulat
-        flexDirection: 'row', // PENTING: Susun ke samping
-        marginBottom: 15, // Jarak antar card
+        width: '90%', 
+        height: 120, 
+        backgroundColor: 'white', 
+        borderRadius: 15, 
+        flexDirection: 'row', 
+        marginBottom: 15, 
         
-        // Shadow (Bayangan) biar card terlihat mengambang
-        elevation: 5, // Android
-        shadowColor: '#000', // iOS
-        shadowOffset: { width: 0, height: 2 }, // iOS
-        shadowOpacity: 0.2, // iOS
-        shadowRadius: 4, // iOS
+        // Shadow
+        elevation: 5, 
+        shadowColor: '#000', 
+        shadowOffset: { width: 0, height: 2 }, 
+        shadowOpacity: 0.2, 
+        shadowRadius: 4, 
         
-        overflow: 'hidden' // PENTING: Agar gambar tidak "bocor" keluar dari borderRadius
+        overflow: 'hidden' 
     },
     cardImage: {
-        width: 120, // Lebar gambar fix
-        height: '100%', // Tinggi mengikuti tinggi card
-        resizeMode: 'cover', // Agar gambar penuh tanpa gepeng
-        backgroundColor: '#ddd' // Placeholder warna kalau gambar loading
+        width: 120, 
+        height: '100%', 
+        resizeMode: 'cover', 
+        backgroundColor: '#ddd' 
     },
     detailsContainer: {
-        flex: 1, // Mengambil sisa ruang di sebelah kanan
+        flex: 1, 
         padding: 10,
-        justifyContent: 'center', // Teks vertikal di tengah
+        justifyContent: 'center', 
     },
     title: {
         fontSize: 16,
@@ -82,7 +156,8 @@ const styles = StyleSheet.create({
     brand: {
         fontSize: 12,
         color: 'gray',
-        marginBottom: 5
+        marginBottom: 5,
+        textTransform: 'capitalize' 
     },
     price: {
         fontSize: 14,
@@ -90,16 +165,15 @@ const styles = StyleSheet.create({
         fontWeight: 'bold'
     },
     statusBadge: {
-        backgroundColor: '#e6f4ea',
         paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: 5,
-        alignSelf: 'flex-start', // Agar badge tidak melebar full
+        alignSelf: 'flex-start', 
         marginTop: 5
     },
     statusText: {
-        color: 'green',
         fontSize: 10,
-        fontWeight: 'bold'
+        fontWeight: 'bold',
+        textTransform: 'uppercase'
     }
 });

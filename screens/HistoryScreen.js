@@ -1,80 +1,155 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { 
+  View, Text, TouchableOpacity, StyleSheet, Image, 
+  FlatList, ActivityIndicator, RefreshControl, Alert 
+} from 'react-native';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native'; 
+
+// Ganti IP sesuai dengan ip yang dipakai
+const API_URL = 'http://192.168.0.125:8080/mojorental_api';
 
 export default function HistoryScreen() {
-    return(
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-            
-            {/* CARD 1 */}
+    const [history, setHistory] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    // Fungsi Ambil Data History
+    const fetchHistory = async () => {
+        try {
+            // Ambil ID user yang sedang login
+            const userJson = await AsyncStorage.getItem('user');
+            const user = JSON.parse(userJson);
+
+            if (user) {
+                const response = await axios.get(`${API_URL}/rentals.php?user_id=${user.id}`);
+                setHistory(response.data);
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchHistory();
+        }, [])
+    );
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchHistory();
+    };
+
+    // Format Rupiah
+    const formatRupiah = (number) => {
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(number);
+    };
+
+    // Warna Badge Status
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'active': return { bg: '#e6f4ea', text: 'green' };
+            case 'pending': return { bg: '#fff3cd', text: '#856404' };
+            case 'returned': return { bg: '#d6d8db', text: '#383d41' };
+            default: return { bg: '#f8d7da', text: '#721c24' }; 
+        }
+    };
+
+    // Render Item (Kartu History)
+    const renderItem = ({ item }) => {
+        const statusStyle = getStatusColor(item.status);
+
+        return (
             <TouchableOpacity style={styles.kendaraanCard}>
+                {/* GAMBAR */}
                 <Image 
                     source={require('../assets/icon.png')}
                     style={styles.cardImage}
                 />
                 
-                {/* 2. BAGIAN KANAN: DETAIL KENDARAAN */}
+                {/* DETAIL KENDARAAN */}
                 <View style={styles.detailsContainer}>
-                    <Text style={styles.title}>Honda Vario 160</Text>
+                    <Text style={styles.title}>{item.vehicle_name}</Text>
+                    
                     <View style={{flexDirection: 'row', width: '100%', justifyContent:'space-between', alignItems:'flex-start'}}>
-                        <Text style={styles.brand}>Honda • Matic</Text>
-                        <Text style={styles.brand}>Dec 01 - Dec 03</Text>
+                        {/* Menampilkan Brand dan Total Hari */}
+                        <Text style={styles.brand}>{item.brand} • {item.total_days} Hari</Text>
+                        
+                        {/* Menampilkan Tanggal Mulai */}
+                        <Text style={[styles.brand, {fontSize: 10}]}>{item.start_date}</Text>
                     </View>
-                    <Text style={styles.price}>Rp 225.000</Text>
-                    <View style={styles.statusBadge}>
-                        <Text style={styles.statusText}>Pending</Text>
+                    
+                    <Text style={styles.price}>{formatRupiah(item.total_price)}</Text>
+                    
+                    {/* Status Badge Dinamis */}
+                    <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+                        <Text style={[styles.statusText, { color: statusStyle.text }]}>
+                            {item.status.toUpperCase()}
+                        </Text>
                     </View>
                 </View>
             </TouchableOpacity>
+        );
+    };
 
-            {/* CARD 2 (Contoh duplikasi biar kelihatan listnya) */}
-            <TouchableOpacity style={styles.kendaraanCard}>
-                <Image source={require('../assets/icon.png')} style={styles.cardImage}/>
-                <View style={styles.detailsContainer}>
-                    <Text style={styles.title}>Toyota Avanza</Text>
-                    <View style={{flexDirection: 'row', width: '100%', justifyContent:'space-between', alignItems:'flex-start'}}>
-                        <Text style={styles.brand}>Toyota • Manual</Text>
-                        <Text style={styles.brand}>Nov 29</Text>
-                    </View>
-                    <Text style={styles.price}>Rp 350.000</Text>
+    return (
+        <View style={{flex: 1, backgroundColor: '#f2f2f2'}}>
+            {loading ? (
+                <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+                    <ActivityIndicator size="large" color="blue" />
                 </View>
-            </TouchableOpacity>
-
-        </ScrollView>
+            ) : (
+                <FlatList
+                    data={history}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={renderItem}
+                    contentContainerStyle={styles.scrollContainer}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+                    ListEmptyComponent={
+                        <Text style={{textAlign: 'center', marginTop: 50, color: 'gray'}}>
+                            Belum ada riwayat penyewaan.
+                        </Text>
+                    }
+                />
+            )}
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     scrollContainer: { 
         paddingVertical: 20,
-        alignItems: 'center', // Agar card berada di tengah layar secara horizontal
+        alignItems: 'center', 
     },
     kendaraanCard: {
-        width: '90%', // Lebar card 90% dari layar
-        height: 120, // Tinggi fix biar rapi (opsional, bisa auto)
-        backgroundColor: 'white', // Ganti gray jadi putih biar bersih
-        borderRadius: 15, // Sudut membulat
-        flexDirection: 'row', // PENTING: Susun ke samping
-        marginBottom: 15, // Jarak antar card
-        
-        // Shadow (Bayangan) biar card terlihat mengambang
-        elevation: 5, // Android
-        shadowColor: '#000', // iOS
-        shadowOffset: { width: 0, height: 2 }, // iOS
-        shadowOpacity: 0.2, // iOS
-        shadowRadius: 4, // iOS
-        
-        overflow: 'hidden' // PENTING: Agar gambar tidak "bocor" keluar dari borderRadius
+        width: '90%', 
+        height: 120, 
+        backgroundColor: 'white', 
+        borderRadius: 15, 
+        flexDirection: 'row', 
+        marginBottom: 15, 
+        elevation: 5, 
+        shadowColor: '#000', 
+        shadowOffset: { width: 0, height: 2 }, 
+        shadowOpacity: 0.2, 
+        shadowRadius: 4, 
+        overflow: 'hidden' 
     },
     cardImage: {
-        width: 120, // Lebar gambar fix
-        height: '100%', // Tinggi mengikuti tinggi card
-        resizeMode: 'cover', // Agar gambar penuh tanpa gepeng
-        backgroundColor: '#ddd' // Placeholder warna kalau gambar loading
+        width: 120, 
+        height: '100%', 
+        resizeMode: 'cover', 
+        backgroundColor: '#ddd' 
     },
     detailsContainer: {
-        flex: 1, // Mengambil sisa ruang di sebelah kanan
+        flex: 1, 
         padding: 10,
-        justifyContent: 'center', // Teks vertikal di tengah
+        justifyContent: 'center', 
     },
     title: {
         fontSize: 16,
@@ -93,15 +168,13 @@ const styles = StyleSheet.create({
         fontWeight: 'bold'
     },
     statusBadge: {
-        backgroundColor: '#e6f4ea',
         paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: 5,
-        alignSelf: 'flex-start', // Agar badge tidak melebar full
+        alignSelf: 'flex-start', 
         marginTop: 5
     },
     statusText: {
-        color: 'green',
         fontSize: 10,
         fontWeight: 'bold'
     }
