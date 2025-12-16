@@ -6,7 +6,7 @@ import {
 import axios from 'axios';
 
 // Ganti ip sesuai dengan ip yang digunakan
-const API_URL = 'http://192.168.0.125:8080/mojorental_api';
+const API_URL = 'http://10.159.224.165/mojorental_api/';
 
 export default function ListKendaraan({ navigation }) {
     const [vehicles, setVehicles] = useState([]);
@@ -51,9 +51,9 @@ export default function ListKendaraan({ navigation }) {
         <TouchableOpacity style={styles.kendaraanCard} onPress={() => handleRent(item)}>
             {/* GAMBAR */}
             <Image 
-                source={require('../assets/icon.png')} 
-                style={styles.cardImage}
-            />
+        source={{ uri: item.image_url }} 
+        style={styles.cardImage}
+    />
             
             {/* DETAIL KENDARAAN */}
             <View style={styles.detailsContainer}>

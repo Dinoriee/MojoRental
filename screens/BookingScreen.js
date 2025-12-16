@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 // Ganti ip sesuai dengan ip yang digunakan
-const API_URL = 'http://192.168.0.125:8080/mojorental_api';
+const API_URL = 'http://10.159.224.165/mojorental_api/';
 
 export default function BookingScreen({ route, navigation }) {
   // Ambil data kendaraan yang dikirim dari ListKendaraan

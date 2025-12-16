@@ -6,7 +6,7 @@ import {
 import axios from 'axios';
 
 // Ganti IP sesuai IP yang digunakan
-const API_URL = 'http://192.168.0.125:8080/mojorental_api';
+const API_URL = 'http://10.159.224.165/mojorental_api/';
 
 export default function AdminVehicleScreen({ navigation, logout }) {
   const [vehicles, setVehicles] = useState([]);

@@ -15,6 +15,7 @@ import RegisterScreen from './screens/RegisterScreen';
 import AdminVehicleScreen from './screens/AdminVehicleScreen';
 import BookingScreen from './screens/BookingScreen';
 import AdminOrderScreen from './screens/AdminOrderScreen';
+import SplashScreen from './screens/SplashScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -101,7 +102,6 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{headerShown: false}}>
-        
         {isLoggedIn ? (
           // AREA SUDAH LOGIN 
           userRole === 'admin' ? (
@@ -135,8 +135,8 @@ export default function App() {
         ) : (
           // AREA BELUM LOGIN
           <>
+          <Stack.Screen name='SplashScreen' component={SplashScreen} />
           <Stack.Screen name="Login">
-            {/* Pass handleLoginSuccess biar App.js tahu kapan harus refresh role */}
             {(props) => <LoginScreen {...props} setIsLoggedIn={handleLoginSuccess}/>}
           </Stack.Screen>
           <Stack.Screen name="Register" component={RegisterScreen} />

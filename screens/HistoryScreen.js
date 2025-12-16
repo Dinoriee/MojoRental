@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native'; 
 
 // Ganti IP sesuai dengan ip yang dipakai
-const API_URL = 'http://192.168.0.125:8080/mojorental_api';
+const API_URL = 'http://10.159.224.165/mojorental_api/';
 
 export default function HistoryScreen() {
     const [history, setHistory] = useState([]);

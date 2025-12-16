@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ScrollView } from 'react-native';
+import { useFonts } from 'expo-font';
 import axios from 'axios';
 
-const API_URL = 'http://192.168.0.125:8080/mojorental_api'; 
+const API_URL = 'http://10.159.224.165/mojorental_api/'; 
 
 export default function RegisterScreen({ navigation }) {
   const [form, setForm] = useState({
@@ -13,6 +14,10 @@ export default function RegisterScreen({ navigation }) {
     ktp_number: '',
     address: ''
   });
+
+  const [fontsLoaded] = useFonts({
+          'Gajrajone': require('../assets/fonts/GajrajOne-Regular.ttf')
+      });
 
   const handleRegister = async () => {
     // Validasi sederhana
@@ -38,7 +43,10 @@ export default function RegisterScreen({ navigation }) {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Daftar Akun Penyewa</Text>
+      <View style={{width:'50%', alignItems:'center', justifyContent:'center'}}>
+        <Text style={{fontFamily:'Gajrajone', fontSize: 48, color:'#440080', top:20, right:36}}>Mojo</Text>
+        <Text style={{fontFamily:'Gajrajone', fontSize: 48, color:'#770AD7', bottom: 20, left: 24}}>Rental</Text>
+      </View> 
       
       <TextInput placeholder="Nama Lengkap" style={styles.input} onChangeText={(t) => setForm({...form, name: t})} />
       <TextInput placeholder="Email" style={styles.input} onChangeText={(t) => setForm({...form, email: t})} keyboardType="email-address" />
@@ -60,10 +68,14 @@ export default function RegisterScreen({ navigation }) {
 
 const styles = StyleSheet.create({
     container: { 
-        flexGrow: 1, 
+        flex: 1, 
+        flexGrow: 1,
         justifyContent: 'center', 
         padding: 20, 
-        backgroundColor: '#fff' },
+        backgroundColor: '#fff',
+        justifyContent: 'center',
+        alignItems: 'center',       
+      },
 
     title: { 
         fontSize: 24, 
@@ -73,13 +85,15 @@ const styles = StyleSheet.create({
 
     input: { 
         borderWidth: 1, 
+        width: '70%',
         borderColor: '#ccc', 
         padding: 10, 
         marginBottom: 15, 
         borderRadius: 8 },
 
     button: { 
-        backgroundColor: '#007BFF', 
+        backgroundColor: '#007BFF',
+        width: '70%', 
         padding: 15, 
         borderRadius: 8, 
         alignItems: 'center' },
