@@ -1,5 +1,4 @@
 <?php
-// htdocs/mojorental/api/koneksi.php
 
 $host = "localhost";
 $user = "root";

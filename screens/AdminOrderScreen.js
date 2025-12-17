@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import axios from 'axios';
 
-const API_URL = 'http://192.168.1.218/mojorental_api/';
+const API_URL = 'http://192.168.0.116:8080/mojorental_api/';
 
 export default function AdminOrderScreen() {
   const [orders, setOrders] = useState([]);

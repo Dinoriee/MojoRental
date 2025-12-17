@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native'; 
 
 // Ganti IP sesuai dengan ip yang dipakai
-const API_URL = 'http://192.168.1.218/mojorental_api/';
+const API_URL = 'http://192.168.0.116:8080/mojorental_api/';
 
 export default function HistoryScreen() {
     const [history, setHistory] = useState([]);
@@ -66,27 +66,22 @@ export default function HistoryScreen() {
 
         return (
             <TouchableOpacity style={styles.kendaraanCard}>
-                {/* GAMBAR */}
+                {/* GAMBAR - DIUBAH DISINI */}
                 <Image 
-                    source={require('../assets/icon.png')}
+                    // Gunakan item.image_url jika ada, jika tidak gunakan fallback icon
+                    source={item.image_url ? { uri: item.image_url } : require('../assets/icon.png')}
                     style={styles.cardImage}
+                    resizeMode="cover"
                 />
                 
-                {/* DETAIL KENDARAAN */}
+                {/* ... (Sisa kode detail kendaraan biarkan sama) ... */}
                 <View style={styles.detailsContainer}>
                     <Text style={styles.title}>{item.vehicle_name}</Text>
-                    
                     <View style={{flexDirection: 'row', width: '100%', justifyContent:'space-between', alignItems:'flex-start'}}>
-                        {/* Menampilkan Brand dan Total Hari */}
                         <Text style={styles.brand}>{item.brand} • {item.total_days} Hari</Text>
-                        
-                        {/* Menampilkan Tanggal Mulai */}
                         <Text style={[styles.brand, {fontSize: 10}]}>{item.start_date}</Text>
                     </View>
-                    
                     <Text style={styles.price}>{formatRupiah(item.total_price)}</Text>
-                    
-                    {/* Status Badge Dinamis */}
                     <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
                         <Text style={[styles.statusText, { color: statusStyle.text }]}>
                             {item.status.toUpperCase()}

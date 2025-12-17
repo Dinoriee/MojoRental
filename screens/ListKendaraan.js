@@ -6,7 +6,7 @@ import {
 import axios from 'axios';
 
 // Ganti ip sesuai dengan ip yang digunakan
-const API_URL = 'http://192.168.1.218/mojorental_api/';
+const API_URL = 'http://192.168.0.116:8080/mojorental_api/';
 
 export default function ListKendaraan({ navigation }) {
     const [vehicles, setVehicles] = useState([]);
