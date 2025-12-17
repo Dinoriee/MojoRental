@@ -3,7 +3,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { StyleSheet, ActivityIndicator, View } from 'react-native'; // Tambahkan View & ActivityIndicator
+import { StyleSheet, ActivityIndicator, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 // IMPORT SCREEN
 import HomeScreen from './screens/HomeScreen';
@@ -23,7 +24,19 @@ const Tab = createBottomTabNavigator();
 // Menu Tab Bawah (Khusus User Biasa)
 function MainMenu({logout}) {
   return(
-    <Tab.Navigator>
+    <Tab.Navigator
+    screenOptions={({route}) => ({
+      tabBarIcon: ({color, size}) =>{
+        let iconName;
+        if(route.name === 'Home') iconName ='home';
+        else if(route.name === 'List') iconName ='list';
+        else if(route.name === 'History') iconName ='sync';
+        else if(route.name === 'Profile') iconName ='person';
+        return <Ionicons name ={iconName} size={size} color={color} />;
+      },
+      tabBarActiveTintColor: '#440080'
+    })}
+    >
       <Tab.Screen name="Home">
         {(props) => <HomeScreen {...props} logout={logout}/>} 
       </Tab.Screen>
@@ -80,6 +93,7 @@ export default function App() {
       await AsyncStorage.removeItem('user'); 
       setLoggedIn(false); 
       setUserRole(null);
+      navigation.navigate("Login");
     } catch (e) {
       console.log("Gagal logout: ", e);
     }

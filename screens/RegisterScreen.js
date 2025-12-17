@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ScrollView 
 import { useFonts } from 'expo-font';
 import axios from 'axios';
 
-const API_URL = 'http://10.159.224.165/mojorental_api/'; 
+const API_URL = 'http://192.168.1.218/mojorental_api/'; 
 
 export default function RegisterScreen({ navigation }) {
   const [form, setForm] = useState({

@@ -1,20 +1,99 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, Text, FlatList, TouchableOpacity, TextInput, 
-  Modal, Alert, StyleSheet, ScrollView, RefreshControl, ActivityIndicator 
+  Modal, Alert, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, Animated
 } from 'react-native';
 import axios from 'axios';
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // Ganti IP sesuai IP yang digunakan
-const API_URL = 'http://10.159.224.165/mojorental_api/';
+const API_URL = 'http://192.168.1.218/mojorental_api/';
 
+// --- 1. KOMPONEN TERPISAH UNTUK ITEM KENDARAAN (AGAR ANIMASI BERJALAN PER ITEM) ---
+// --- 1. KOMPONEN TERPISAH (PERBAIKAN) ---
+const VehicleItem = ({ item, isActive, onPress, onEdit, onDelete }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current; 
+  const slideAnim = useRef(new Animated.Value(60)).current;
+
+  useEffect(() => {
+    if (isActive) {
+      // ANIMASI MASUK
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 0, 
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1, 
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      // ANIMASI KELUAR
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 60, // Balikin ke posisi awal (60) bukan -60 biar rapi
+          duration: 200,
+          useNativeDriver: true,
+        })
+      ]).start();
+    }
+  }, [isActive]);
+
+  return (
+    <TouchableOpacity 
+        style={styles.card} 
+        onPress={() => onPress(item.id)}
+        activeOpacity={0.9}
+    >
+        <View style={styles.cardInfo}>
+            <Text style={styles.cardTitle}>{item.name}</Text>
+            <Text style={styles.cardSubtitle}>{item.brand} | {item.type}</Text>
+            <Text style={styles.cardPrice}>Rp {parseInt(item.price_per_day).toLocaleString()}/hari</Text>
+            <Text style={styles.cardPlate}>{item.plate_number}</Text>
+        </View>
+        
+        {/* HAPUS {isActive && (...)} */}
+        {/* Biarkan Animated.View selalu di-render */}
+        <Animated.View 
+            // Tambahkan pointerEvents="box-none" agar saat invisible tidak menghalangi sentuhan
+            pointerEvents={isActive ? "auto" : "none"} 
+            style={[
+                styles.cardActions, 
+                { 
+                    opacity: fadeAnim, 
+                    transform: [{ translateX: slideAnim }] 
+                }
+            ]}
+        >
+            <TouchableOpacity style={styles.editBtn} onPress={() => onEdit(item)}>
+                <Text style={styles.btnText}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.deleteBtn} onPress={() => onDelete(item.id)}>
+                <Text style={styles.btnText}>Hapus</Text>
+            </TouchableOpacity>
+        </Animated.View>
+    </TouchableOpacity>
+  );
+};
+
+// --- 2. SCREEN UTAMA ---
 export default function AdminVehicleScreen({ navigation, logout }) {
+  const [activeCardId, setActiveCardId] = useState(null);
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [form, setForm] = useState({ id: '', name: '', brand: '', plate_number: '', price_per_day: '', type: '' });
+
   const fetchVehicles = async () => {
     try {
       const response = await axios.get(`${API_URL}/vehicles.php`);
@@ -32,20 +111,20 @@ export default function AdminVehicleScreen({ navigation, logout }) {
 
   const onRefresh = () => { setRefreshing(true); fetchVehicles(); };
 
-  // KONFIRMASI LOGOUT
+  const toggleCard = (id) => {
+    // Logic toggle: kalau diklik lagi item yang sama -> tutup, kalau beda -> ganti
+    if (activeCardId === id) {
+        setActiveCardId(null);
+    } else {
+        setActiveCardId(id);
+    }
+  };
+
   const handleLogoutConfirm = () => {
-    Alert.alert(
-      "Konfirmasi Keluar",
-      "Apakah Anda yakin ingin keluar dari aplikasi?",
-      [
+    Alert.alert("Konfirmasi Keluar", "Apakah Anda yakin ingin keluar?", [
         { text: "Batal", style: "cancel" },
-        { 
-          text: "Ya, Keluar", 
-          onPress: logout,
-          style: "destructive" 
-        }
-      ]
-    );
+        { text: "Ya, Keluar", onPress: logout, style: "destructive" }
+      ]);
   };
 
   const handleDelete = (id) => {
@@ -82,23 +161,19 @@ export default function AdminVehicleScreen({ navigation, logout }) {
     setIsEdit(true); setModalVisible(true);
   };
 
+
   const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardTitle}>{item.name}</Text>
-        <Text style={styles.cardSubtitle}>{item.brand} | {item.type}</Text>
-        <Text style={styles.cardPrice}>Rp {parseInt(item.price_per_day).toLocaleString()}/hari</Text>
-        <Text style={styles.cardPlate}>{item.plate_number}</Text>
-      </View>
-      <View style={styles.cardActions}>
-        <TouchableOpacity style={styles.editBtn} onPress={() => openEditModal(item)}><Text style={styles.btnText}>Edit</Text></TouchableOpacity>
-        <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item.id)}><Text style={styles.btnText}>Hapus</Text></TouchableOpacity>
-      </View>
-    </View>
+    <VehicleItem 
+        item={item}
+        isActive={item.id === activeCardId}
+        onPress={toggleCard}
+        onEdit={openEditModal}
+        onDelete={handleDelete}
+    />
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* HEADER */}
       <View style={styles.header}>
         <View>
@@ -107,7 +182,6 @@ export default function AdminVehicleScreen({ navigation, logout }) {
         </View>
       </View>
 
-      {/* LIST KENDARAAN */}
       {loading ? (
         <ActivityIndicator size="large" color="blue" style={{marginTop: 50}} />
       ) : (
@@ -122,21 +196,17 @@ export default function AdminVehicleScreen({ navigation, logout }) {
         />
       )}
 
-      {/* FOOTER */}
       <View style={styles.bottomContainer}>
-        {/* Tombol Tambah Unit */}
         <TouchableOpacity style={[styles.bottomBtn, styles.addBtn]} onPress={openAddModal}>
             <Text style={styles.bottomBtnText}>+ Unit Baru</Text>
         </TouchableOpacity>
 
-        {/* Tombol Pesanan */}
         <TouchableOpacity
           style={[styles.bottomBtn, { backgroundColor: '#FFC107'}]}
           onPress={() => navigation.navigate('AdminOrders')}>
             <Text style={[styles.bottomBtnText, {color: '#000'}]}>Pesanan</Text>
         </TouchableOpacity>
 
-        {/* Tombol Logout */}
         <TouchableOpacity style={[styles.bottomBtn, styles.logoutBtn]} onPress={handleLogoutConfirm}>
             <Text style={styles.bottomBtnText}>Keluar</Text>
         </TouchableOpacity>
@@ -166,7 +236,7 @@ export default function AdminVehicleScreen({ navigation, logout }) {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -208,7 +278,9 @@ const styles = StyleSheet.create({
     gap: 10, 
     justifyContent: 'space-between',
     alignItems: 'center',
-    elevation: 10
+    elevation: 10,
+    height: '20%',
+    top: 50
   },
 
   bottomBtn: {
@@ -242,7 +314,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', 
     justifyContent: 'space-between', 
     alignItems: 'center', 
-    elevation: 2 
+    elevation: 2,
+    overflow: 'hidden', 
   },
 
   cardInfo: { 
@@ -269,7 +342,9 @@ const styles = StyleSheet.create({
     marginTop: 2 },
 
   cardActions: { 
-    marginLeft: 10 },
+    marginLeft: 10,
+    flexDirection: 'column',
+  },
 
   editBtn: { 
     backgroundColor: '#FFC107', 
